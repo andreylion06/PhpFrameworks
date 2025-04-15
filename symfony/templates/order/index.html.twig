@@ -5,31 +5,42 @@
 {% block body %}
     <h1>Order index</h1>
 
+    <form method="get" class="row g-2 mb-3">
+        <div class="col-md-4">
+            <select name="client_id" class="form-select">
+                <option value="">-- Select Client --</option>
+                {% for client in clients %}
+                    <option value="{{ client.id }}" {{ app.request.get('client_id') == client.id ? 'selected' : '' }}>
+                        {{ client.name }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-3">
+            <input name="created_at" type="date" value="{{ app.request.get('created_at') }}" class="form-control">
+        </div>
+        <div class="col-md-2">
+            <input name="itemsPerPage" value="{{ app.request.get('itemsPerPage') ?? 10 }}" class="form-control" placeholder="#">
+        </div>
+        <div class="col-md-2">
+            <button class="btn btn-primary">Filter</button>
+        </div>
+    </form>
+
     <table class="table">
-        <thead>
-            <tr>
-                <th>Id</th>
-                <th>CreatedAt</th>
-                <th>actions</th>
-            </tr>
-        </thead>
+        <thead><tr><th>ID</th><th>Client</th><th>Created At</th></tr></thead>
         <tbody>
-        {% for order in orders %}
+        {% for order in pagination %}
             <tr>
                 <td>{{ order.id }}</td>
-                <td>{{ order.createdAt ? order.createdAt|date('Y-m-d H:i:s') : '' }}</td>
-                <td>
-                    <a href="{{ path('app_order_show', {'id': order.id}) }}">show</a>
-                    <a href="{{ path('app_order_edit', {'id': order.id}) }}">edit</a>
-                </td>
-            </tr>
-        {% else %}
-            <tr>
-                <td colspan="3">no records found</td>
+                <td>{{ order.client.name }}</td>
+                <td>{{ order.createdAt ? order.createdAt|date('Y-m-d H:i') : '' }}</td>
             </tr>
         {% endfor %}
         </tbody>
     </table>
+
+    {{ knp_pagination_render(pagination) }}
 
     <a href="{{ path('app_order_new') }}">Create new</a>
 {% endblock %}

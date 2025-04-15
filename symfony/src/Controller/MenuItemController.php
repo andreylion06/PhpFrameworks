@@ -6,18 +6,44 @@ use App\Entity\MenuItem;
 use App\Form\MenuItemType;
 use App\Repository\MenuItemRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use Knp\Component\Pager\PaginatorInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
-#[Route('/menu/item')]
+#[Route('/menu-items')]
 final class MenuItemController extends AbstractController{
     #[Route(name: 'app_menu_item_index', methods: ['GET'])]
-    public function index(MenuItemRepository $menuItemRepository): Response
-    {
+    public function index(
+        Request $request,
+        EntityManagerInterface $em,
+        PaginatorInterface $paginator
+    ) {
+        $queryBuilder = $em->getRepository(MenuItem::class)->createQueryBuilder('m');
+
+        if ($name = $request->query->get('name')) {
+            $queryBuilder->andWhere('m.name LIKE :name')->setParameter('name', "%$name%");
+        }
+
+        if ($min = $request->query->get('price_min')) {
+            $queryBuilder->andWhere('m.price >= :min')->setParameter('min', $min);
+        }
+
+        if ($max = $request->query->get('price_max')) {
+            $queryBuilder->andWhere('m.price <= :max')->setParameter('max', $max);
+        }
+
+        $itemsPerPage = $request->query->getInt('itemsPerPage', 10);
+
+        $pagination = $paginator->paginate(
+            $queryBuilder,
+            $request->query->getInt('page', 1),
+            $itemsPerPage
+        );
+
         return $this->render('menu_item/index.html.twig', [
-            'menu_items' => $menuItemRepository->findAll(),
+            'pagination' => $pagination,
         ]);
     }
 

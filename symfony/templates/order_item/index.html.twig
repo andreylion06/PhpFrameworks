@@ -5,31 +5,64 @@
 {% block body %}
     <h1>OrderItem index</h1>
 
+    <form method="get" class="row g-2 mb-3">
+        <div class="col-md-3">
+            <select name="order_id" class="form-select">
+                <option value="">-- Order --</option>
+                {% for order in orders %}
+                    <option value="{{ order.id }}" {{ app.request.get('order_id') == order.id ? 'selected' : '' }}>
+                        Order #{{ order.id }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="col-md-3">
+            <select name="menu_item_id" class="form-select">
+                <option value="">-- Menu Item --</option>
+                {% for item in menuItems %}
+                    <option value="{{ item.id }}" {{ app.request.get('menu_item_id') == item.id ? 'selected' : '' }}>
+                        {{ item.name }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="col-md-2">
+            <input type="number" name="quantity_min" class="form-control" placeholder="Min Qty" value="{{ app.request.get('quantity_min') }}">
+        </div>
+
+        <div class="col-md-2">
+            <input type="number" name="quantity_max" class="form-control" placeholder="Max Qty" value="{{ app.request.get('quantity_max') }}">
+        </div>
+
+        <div class="col-md-1">
+            <input type="number" name="itemsPerPage" class="form-control" placeholder="#" value="{{ app.request.get('itemsPerPage') ?? 10 }}">
+        </div>
+
+        <div class="col-md-1">
+            <button class="btn btn-primary">Filter</button>
+        </div>
+    </form>
+
     <table class="table">
         <thead>
-            <tr>
-                <th>Id</th>
-                <th>Quantity</th>
-                <th>actions</th>
-            </tr>
+        <tr><th>ID</th><th>Order</th><th>Menu Item</th><th>Qty</th></tr>
         </thead>
         <tbody>
-        {% for order_item in order_items %}
+        {% for item in pagination %}
             <tr>
-                <td>{{ order_item.id }}</td>
-                <td>{{ order_item.quantity }}</td>
-                <td>
-                    <a href="{{ path('app_order_item_show', {'id': order_item.id}) }}">show</a>
-                    <a href="{{ path('app_order_item_edit', {'id': order_item.id}) }}">edit</a>
-                </td>
-            </tr>
-        {% else %}
-            <tr>
-                <td colspan="3">no records found</td>
+                <td>{{ item.id }}</td>
+                <td>Order #{{ item.order.id }}</td>
+                <td>{{ item.menuItem.name }}</td>
+                <td>{{ item.quantity }}</td>
             </tr>
         {% endfor %}
         </tbody>
     </table>
+
+    {{ knp_pagination_render(pagination) }}
+
 
     <a href="{{ path('app_order_item_new') }}">Create new</a>
 {% endblock %}

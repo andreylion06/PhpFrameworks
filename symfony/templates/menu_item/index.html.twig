@@ -5,35 +5,38 @@
 {% block body %}
     <h1>MenuItem index</h1>
 
+    <form method="get" class="row g-2 mb-3">
+        <div class="col-md-3">
+            <input type="text" name="name" class="form-control" placeholder="Name" value="{{ app.request.get('name') }}">
+        </div>
+        <div class="col-md-2">
+            <input type="number" name="price_min" class="form-control" placeholder="Min Price" value="{{ app.request.get('price_min') }}">
+        </div>
+        <div class="col-md-2">
+            <input type="number" name="price_max" class="form-control" placeholder="Max Price" value="{{ app.request.get('price_max') }}">
+        </div>
+        <div class="col-md-2">
+            <input type="number" name="itemsPerPage" class="form-control" placeholder="Items/page" value="{{ app.request.get('itemsPerPage') ?? 10 }}">
+        </div>
+        <div class="col-md-2">
+            <button class="btn btn-primary">Filter</button>
+        </div>
+    </form>
+
     <table class="table">
-        <thead>
-            <tr>
-                <th>Id</th>
-                <th>Name</th>
-                <th>Description</th>
-                <th>Price</th>
-                <th>actions</th>
-            </tr>
-        </thead>
+        <thead><tr><th>ID</th><th>Name</th><th>Price</th></tr></thead>
         <tbody>
-        {% for menu_item in menu_items %}
+        {% for item in pagination %}
             <tr>
-                <td>{{ menu_item.id }}</td>
-                <td>{{ menu_item.name }}</td>
-                <td>{{ menu_item.description }}</td>
-                <td>{{ menu_item.price }}</td>
-                <td>
-                    <a href="{{ path('app_menu_item_show', {'id': menu_item.id}) }}">show</a>
-                    <a href="{{ path('app_menu_item_edit', {'id': menu_item.id}) }}">edit</a>
-                </td>
-            </tr>
-        {% else %}
-            <tr>
-                <td colspan="5">no records found</td>
+                <td>{{ item.id }}</td>
+                <td>{{ item.name }}</td>
+                <td>{{ item.price }}</td>
             </tr>
         {% endfor %}
         </tbody>
     </table>
+
+    {{ knp_pagination_render(pagination) }}
 
     <a href="{{ path('app_menu_item_new') }}">Create new</a>
 {% endblock %}

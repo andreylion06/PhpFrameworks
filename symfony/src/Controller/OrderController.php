@@ -2,22 +2,51 @@
 
 namespace App\Controller;
 
+use App\Entity\Client;
 use App\Entity\Order;
 use App\Form\OrderType;
 use App\Repository\OrderRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use Knp\Component\Pager\PaginatorInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
-#[Route('/order')]
+#[Route('/orders')]
 final class OrderController extends AbstractController{
     #[Route(name: 'app_order_index', methods: ['GET'])]
-    public function index(OrderRepository $orderRepository): Response
-    {
+    public function index(
+        Request $request,
+        EntityManagerInterface $em,
+        PaginatorInterface $paginator
+    ) {
+        $queryBuilder = $em->getRepository(Order::class)->createQueryBuilder('o')
+            ->leftJoin('o.client', 'c')
+            ->addSelect('c');
+
+        if ($clientId = $request->query->get('client_id')) {
+            $queryBuilder->andWhere('c.id = :client')->setParameter('client', $clientId);
+        }
+
+        if ($createdAt = $request->query->get('created_at')) {
+            $queryBuilder->andWhere('DATE(o.createdAt) = :createdAt')
+                ->setParameter('createdAt', $createdAt);
+        }
+
+        $itemsPerPage = $request->query->getInt('itemsPerPage', 10);
+
+        $pagination = $paginator->paginate(
+            $queryBuilder,
+            $request->query->getInt('page', 1),
+            $itemsPerPage
+        );
+
+        $clients = $em->getRepository(Client::class)->findAll();
+
         return $this->render('order/index.html.twig', [
-            'orders' => $orderRepository->findAll(),
+            'pagination' => $pagination,
+            'clients' => $clients,
         ]);
     }
 

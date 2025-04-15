@@ -5,33 +5,51 @@
 {% block body %}
     <h1>TableReservation index</h1>
 
+    <form method="get" class="row g-2 mb-3">
+        <div class="col-md-3">
+            <select name="client_id" class="form-select">
+                <option value="">-- Select Client --</option>
+                {% for client in clients %}
+                    <option value="{{ client.id }}" {{ app.request.get('client_id') == client.id ? 'selected' : '' }}>
+                        {{ client.name }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="col-md-2">
+            <input type="number" name="table_number" class="form-control" placeholder="Table #" value="{{ app.request.get('table_number') }}">
+        </div>
+
+        <div class="col-md-3">
+            <input type="date" name="reservation_date" class="form-control" value="{{ app.request.get('reservation_date') }}">
+        </div>
+
+        <div class="col-md-2">
+            <input type="number" name="itemsPerPage" class="form-control" placeholder="#" value="{{ app.request.get('itemsPerPage') ?? 10 }}">
+        </div>
+
+        <div class="col-md-2">
+            <button class="btn btn-primary">Filter</button>
+        </div>
+    </form>
+
     <table class="table">
-        <thead>
-            <tr>
-                <th>Id</th>
-                <th>TableNumber</th>
-                <th>ReservationDate</th>
-                <th>actions</th>
-            </tr>
-        </thead>
+        <thead><tr><th>ID</th><th>Client</th><th>Table #</th><th>Date</th></tr></thead>
         <tbody>
-        {% for table_reservation in table_reservations %}
+        {% for reservation in pagination %}
             <tr>
-                <td>{{ table_reservation.id }}</td>
-                <td>{{ table_reservation.tableNumber }}</td>
-                <td>{{ table_reservation.reservationDate ? table_reservation.reservationDate|date('Y-m-d H:i:s') : '' }}</td>
-                <td>
-                    <a href="{{ path('app_table_reservation_show', {'id': table_reservation.id}) }}">show</a>
-                    <a href="{{ path('app_table_reservation_edit', {'id': table_reservation.id}) }}">edit</a>
-                </td>
-            </tr>
-        {% else %}
-            <tr>
-                <td colspan="4">no records found</td>
+                <td>{{ reservation.id }}</td>
+                <td>{{ reservation.client.name }}</td>
+                <td>{{ reservation.tableNumber }}</td>
+                <td>{{ reservation.reservationDate ? reservation.reservationDate|date('Y-m-d H:i') : '' }}</td>
             </tr>
         {% endfor %}
         </tbody>
     </table>
+
+    {{ knp_pagination_render(pagination) }}
+
 
     <a href="{{ path('app_table_reservation_new') }}">Create new</a>
 {% endblock %}

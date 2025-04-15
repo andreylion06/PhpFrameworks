@@ -2,6 +2,8 @@
 
 namespace App\Controller;
 
+use App\Entity\MenuItem;
+use App\Entity\Order;
 use App\Entity\OrderItem;
 use App\Form\OrderItemType;
 use App\Repository\OrderItemRepository;
@@ -11,13 +13,50 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
-#[Route('/order/item')]
+#[Route('/order-items')]
 final class OrderItemController extends AbstractController{
     #[Route(name: 'app_order_item_index', methods: ['GET'])]
-    public function index(OrderItemRepository $orderItemRepository): Response
-    {
+    public function index(
+        Request $request,
+        EntityManagerInterface $em,
+        PaginatorInterface $paginator
+    ) {
+        $queryBuilder = $em->getRepository(OrderItem::class)->createQueryBuilder('oi')
+            ->leftJoin('oi.order', 'o')
+            ->leftJoin('oi.menuItem', 'mi')
+            ->addSelect('o', 'mi');
+
+        if ($orderId = $request->query->get('order_id')) {
+            $queryBuilder->andWhere('o.id = :orderId')->setParameter('orderId', $orderId);
+        }
+
+        if ($menuItemId = $request->query->get('menu_item_id')) {
+            $queryBuilder->andWhere('mi.id = :menuItemId')->setParameter('menuItemId', $menuItemId);
+        }
+
+        if ($min = $request->query->get('quantity_min')) {
+            $queryBuilder->andWhere('oi.quantity >= :min')->setParameter('min', $min);
+        }
+
+        if ($max = $request->query->get('quantity_max')) {
+            $queryBuilder->andWhere('oi.quantity <= :max')->setParameter('max', $max);
+        }
+
+        $itemsPerPage = $request->query->getInt('itemsPerPage', 10);
+
+        $pagination = $paginator->paginate(
+            $queryBuilder,
+            $request->query->getInt('page', 1),
+            $itemsPerPage
+        );
+
+        $orders = $em->getRepository(Order::class)->findAll();
+        $menuItems = $em->getRepository(MenuItem::class)->findAll();
+
         return $this->render('order_item/index.html.twig', [
-            'order_items' => $orderItemRepository->findAll(),
+            'pagination' => $pagination,
+            'orders' => $orders,
+            'menuItems' => $menuItems,
         ]);
     }
 

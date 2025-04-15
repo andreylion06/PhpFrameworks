@@ -6,18 +6,44 @@ use App\Entity\Client;
 use App\Form\ClientType;
 use App\Repository\ClientRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use Knp\Component\Pager\PaginatorInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
-#[Route('/client')]
+#[Route('/clients')]
 final class ClientController extends AbstractController{
     #[Route(name: 'app_client_index', methods: ['GET'])]
-    public function index(ClientRepository $clientRepository): Response
-    {
+    public function index(
+        Request $request,
+        EntityManagerInterface $em,
+        PaginatorInterface $paginator
+    ) {
+        $queryBuilder = $em->getRepository(Client::class)->createQueryBuilder('c');
+
+        if ($name = $request->query->get('name')) {
+            $queryBuilder->andWhere('c.name LIKE :name')->setParameter('name', "%$name%");
+        }
+
+        if ($email = $request->query->get('email')) {
+            $queryBuilder->andWhere('c.email LIKE :email')->setParameter('email', "%$email%");
+        }
+
+        if ($phone = $request->query->get('phone')) {
+            $queryBuilder->andWhere('c.phone LIKE :phone')->setParameter('phone', "%$phone%");
+        }
+
+        $itemsPerPage = $request->query->getInt('itemsPerPage', 10);
+
+        $pagination = $paginator->paginate(
+            $queryBuilder,
+            $request->query->getInt('page', 1),
+            $itemsPerPage
+        );
+
         return $this->render('client/index.html.twig', [
-            'clients' => $clientRepository->findAll(),
+            'pagination' => $pagination,
         ]);
     }
 

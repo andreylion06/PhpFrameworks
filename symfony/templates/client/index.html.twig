@@ -5,35 +5,33 @@
 {% block body %}
     <h1>Client index</h1>
 
+    <form method="get" class="row g-2 mb-3">
+        <input name="name" value="{{ app.request.get('name') }}" placeholder="Name" class="form-control col">
+        <input name="email" value="{{ app.request.get('email') }}" placeholder="Email" class="form-control col">
+        <input name="phone" value="{{ app.request.get('phone') }}" placeholder="Phone" class="form-control col">
+        <input name="itemsPerPage" value="{{ app.request.get('itemsPerPage') ?? 10 }}" class="form-control col" placeholder="Items per page">
+        <button class="btn btn-primary col">Filter</button>
+    </form>
+
     <table class="table">
         <thead>
-            <tr>
-                <th>Id</th>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Phone</th>
-                <th>actions</th>
-            </tr>
+        <tr><th>ID</th><th>Name</th><th>Email</th><th>Phone</th></tr>
         </thead>
         <tbody>
-        {% for client in clients %}
+        {% for client in pagination %}
             <tr>
                 <td>{{ client.id }}</td>
                 <td>{{ client.name }}</td>
                 <td>{{ client.email }}</td>
                 <td>{{ client.phone }}</td>
-                <td>
-                    <a href="{{ path('app_client_show', {'id': client.id}) }}">show</a>
-                    <a href="{{ path('app_client_edit', {'id': client.id}) }}">edit</a>
-                </td>
-            </tr>
-        {% else %}
-            <tr>
-                <td colspan="5">no records found</td>
             </tr>
         {% endfor %}
         </tbody>
     </table>
+
+    <div class="pagination">
+        {{ knp_pagination_render(pagination) }}
+    </div>
 
     <a href="{{ path('app_client_new') }}">Create new</a>
 {% endblock %}
