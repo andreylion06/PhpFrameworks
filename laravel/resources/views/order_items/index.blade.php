@@ -9,6 +9,46 @@
             <div class="alert alert-success">{{ session('success') }}</div>
         @endif
 
+        <form method="GET" class="row g-2 mb-3">
+            <div class="col-md-3">
+                <select name="order_id" class="form-select">
+                    <option value="">-- Order --</option>
+                    @foreach($orders as $order)
+                        <option value="{{ $order->id }}" {{ request('order_id') == $order->id ? 'selected' : '' }}>
+                            Order #{{ $order->id }} ({{ $order->client->name }})
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div class="col-md-3">
+                <select name="menu_item_id" class="form-select">
+                    <option value="">-- Menu Item --</option>
+                    @foreach($menuItems as $item)
+                        <option value="{{ $item->id }}" {{ request('menu_item_id') == $item->id ? 'selected' : '' }}>
+                            {{ $item->name }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div class="col-md-2">
+                <input type="number" name="quantity_min" class="form-control" placeholder="Min Qty" value="{{ request('quantity_min') }}">
+            </div>
+
+            <div class="col-md-2">
+                <input type="number" name="quantity_max" class="form-control" placeholder="Max Qty" value="{{ request('quantity_max') }}">
+            </div>
+
+            <div class="col-md-1">
+                <input type="number" name="itemsPerPage" class="form-control" placeholder="#" value="{{ request('itemsPerPage', 10) }}">
+            </div>
+
+            <div class="col-md-1">
+                <button class="btn btn-primary">Filter</button>
+            </div>
+        </form>
+
         <table class="table table-bordered">
             <thead><tr><th>ID</th><th>Order</th><th>Menu Item</th><th>Quantity</th><th>Actions</th></tr></thead>
             <tbody>
@@ -30,5 +70,7 @@
             @endforeach
             </tbody>
         </table>
+
+        {{ $orderItems->links('pagination::bootstrap-5') }}
     </div>
 @endsection

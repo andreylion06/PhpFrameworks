@@ -10,9 +10,26 @@ class ClientController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $clients = Client::all();
+        $query = Client::query();
+
+        if ($request->filled('name')) {
+            $query->where('name', 'like', '%' . $request->name . '%');
+        }
+
+        if ($request->filled('email')) {
+            $query->where('email', 'like', '%' . $request->email . '%');
+        }
+
+        if ($request->filled('phone')) {
+            $query->where('phone', 'like', '%' . $request->phone . '%');
+        }
+
+        $itemsPerPage = $request->input('itemsPerPage', 10); // за замовчуванням 10
+
+        $clients = $query->paginate($itemsPerPage)->appends($request->query());
+
         return view('clients.index', compact('clients'));
     }
 

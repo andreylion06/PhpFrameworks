@@ -9,6 +9,24 @@
             <div class="alert alert-success">{{ session('success') }}</div>
         @endif
 
+        <form method="GET" class="row g-2 mb-3">
+            <div class="col-md-3">
+                <input type="text" name="name" class="form-control" placeholder="Name" value="{{ request('name') }}">
+            </div>
+            <div class="col-md-2">
+                <input type="number" step="0.01" name="price_min" class="form-control" placeholder="Min Price" value="{{ request('price_min') }}">
+            </div>
+            <div class="col-md-2">
+                <input type="number" step="0.01" name="price_max" class="form-control" placeholder="Max Price" value="{{ request('price_max') }}">
+            </div>
+            <div class="col-md-2">
+                <input type="number" name="itemsPerPage" class="form-control" placeholder="Items per page" value="{{ request('itemsPerPage', 10) }}">
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-primary">Filter</button>
+            </div>
+        </form>
+
         <table class="table table-bordered">
             <thead><tr><th>ID</th><th>Name</th><th>Price</th><th>Actions</th></tr></thead>
             <tbody>
@@ -29,5 +47,7 @@
             @endforeach
             </tbody>
         </table>
+
+        {{ $menuItems->links('pagination::bootstrap-5') }}
     </div>
 @endsection

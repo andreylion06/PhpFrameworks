@@ -8,10 +8,28 @@ use Illuminate\Http\Request;
 
 class TableReservationController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $reservations = TableReservation::with('client')->get();
-        return view('table_reservations.index', compact('reservations'));
+        $query = TableReservation::with('client');
+
+        if ($request->filled('client_id')) {
+            $query->where('client_id', $request->client_id);
+        }
+
+        if ($request->filled('table_number')) {
+            $query->where('table_number', $request->table_number);
+        }
+
+        if ($request->filled('reservation_date')) {
+            $query->whereDate('reservation_date', $request->reservation_date);
+        }
+
+        $itemsPerPage = $request->input('itemsPerPage', 10);
+        $reservations = $query->paginate($itemsPerPage)->appends($request->query());
+
+        $clients = Client::all();
+
+        return view('table_reservations.index', compact('reservations', 'clients'));
     }
 
     public function create()

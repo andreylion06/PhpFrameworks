@@ -9,6 +9,35 @@
             <div class="alert alert-success">{{ session('success') }}</div>
         @endif
 
+        <form method="GET" class="row g-2 mb-3">
+            <div class="col-md-3">
+                <select name="client_id" class="form-select">
+                    <option value="">-- Select Client --</option>
+                    @foreach($clients as $client)
+                        <option value="{{ $client->id }}" {{ request('client_id') == $client->id ? 'selected' : '' }}>
+                            {{ $client->name }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div class="col-md-2">
+                <input type="number" name="table_number" class="form-control" placeholder="Table #" value="{{ request('table_number') }}">
+            </div>
+
+            <div class="col-md-3">
+                <input type="date" name="reservation_date" class="form-control" value="{{ request('reservation_date') }}">
+            </div>
+
+            <div class="col-md-2">
+                <input type="number" name="itemsPerPage" class="form-control" placeholder="#" value="{{ request('itemsPerPage', 10) }}">
+            </div>
+
+            <div class="col-md-2">
+                <button class="btn btn-primary">Filter</button>
+            </div>
+        </form>
+
         <table class="table table-bordered">
             <thead><tr><th>ID</th><th>Client</th><th>Table</th><th>Date</th><th>Actions</th></tr></thead>
             <tbody>
@@ -30,5 +59,7 @@
             @endforeach
             </tbody>
         </table>
+
+        {{ $reservations->links('pagination::bootstrap-5') }}
     </div>
 @endsection

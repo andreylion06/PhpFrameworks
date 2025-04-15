@@ -8,10 +8,25 @@ use Illuminate\Http\Request;
 
 class OrderController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $orders = Order::with('client')->get();
-        return view('orders.index', compact('orders'));
+        $query = Order::with('client');
+
+        if ($request->filled('client_id')) {
+            $query->where('client_id', $request->client_id);
+        }
+
+        if ($request->filled('created_at')) {
+            $query->whereDate('created_at', $request->created_at);
+        }
+
+        $itemsPerPage = $request->input('itemsPerPage', 10);
+
+        $orders = $query->paginate($itemsPerPage)->appends($request->query());
+
+        $clients = Client::all(); // для селектора
+
+        return view('orders.index', compact('orders', 'clients'));
     }
 
     public function create()
