@@ -3,63 +3,64 @@
 namespace App\Http\Controllers;
 
 use App\Models\TableReservation;
+use App\Models\Client;
 use Illuminate\Http\Request;
 
 class TableReservationController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index()
     {
-        //
+        $reservations = TableReservation::with('client')->get();
+        return view('table_reservations.index', compact('reservations'));
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
     public function create()
     {
-        //
+        $clients = Client::all();
+        return view('table_reservations.create', compact('clients'));
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request)
     {
-        //
+        $request->validate([
+            'client_id' => 'required|exists:clients,id',
+            'table_number' => 'required|integer|min:1',
+            'reservation_date' => 'required|date',
+        ]);
+
+        TableReservation::create($request->all());
+
+        return redirect()->route('table-reservations.index')->with('success', 'Reservation created successfully.');
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(TableReservation $tablereservation)
+    public function show(TableReservation $tableReservation)
     {
-        //
+        return view('table_reservations.show', compact('tableReservation'));
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(TableReservation $tablereservation)
+    public function edit(TableReservation $tableReservation)
     {
-        //
+        $clients = Client::all();
+        return view('table_reservations.edit', compact('tableReservation', 'clients'));
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, TableReservation $tablereservation)
+    public function update(Request $request, TableReservation $tableReservation)
     {
-        //
+        $request->validate([
+            'client_id' => 'required|exists:clients,id',
+            'table_number' => 'required|integer|min:1',
+            'reservation_date' => 'required|date',
+        ]);
+
+        $tableReservation->update($request->all());
+
+        return redirect()->route('table-reservations.index')->with('success', 'Reservation updated successfully.');
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(TableReservation $tablereservation)
+    public function destroy(TableReservation $tableReservation)
     {
-        //
+        $tableReservation->delete();
+
+        return redirect()->route('table-reservations.index')->with('success', 'Reservation deleted successfully.');
     }
 }

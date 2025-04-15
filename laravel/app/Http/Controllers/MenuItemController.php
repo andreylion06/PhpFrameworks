@@ -7,59 +7,57 @@ use Illuminate\Http\Request;
 
 class MenuItemController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index()
     {
-        //
+        $menuItems = MenuItem::all();
+        return view('menu_items.index', compact('menuItems'));
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
     public function create()
     {
-        //
+        return view('menu_items.create');
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request)
     {
-        //
+        $request->validate([
+            'name' => 'required',
+            'description' => 'nullable',
+            'price' => 'required|numeric',
+        ]);
+
+        MenuItem::create($request->all());
+
+        return redirect()->route('menu-items.index')->with('success', 'Menu item created successfully.');
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(MenuItem $menuitem)
+    public function show(MenuItem $menuItem)
     {
-        //
+        return view('menu_items.show', compact('menuItem'));
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(MenuItem $menuitem)
+    public function edit(MenuItem $menuItem)
     {
-        //
+        return view('menu_items.edit', compact('menuItem'));
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, MenuItem $menuitem)
+    public function update(Request $request, MenuItem $menuItem)
     {
-        //
+        $request->validate([
+            'name' => 'required',
+            'description' => 'nullable',
+            'price' => 'required|numeric',
+        ]);
+
+        $menuItem->update($request->all());
+
+        return redirect()->route('menu-items.index')->with('success', 'Menu item updated successfully.');
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(MenuItem $menuitem)
+    public function destroy(MenuItem $menuItem)
     {
-        //
+        $menuItem->delete();
+
+        return redirect()->route('menu-items.index')->with('success', 'Menu item deleted successfully.');
     }
 }
