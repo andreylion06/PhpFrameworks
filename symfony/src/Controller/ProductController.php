@@ -7,83 +7,114 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\HttpFoundation\Response;
 
 #[Route('/products')]
 class ProductController extends AbstractController
 {
-    private const PRODUCTS = [];
-
-    #[Route('/', name: 'get_products', methods: ['GET'])]
-    public function getProducts(EntityManagerInterface $em): JsonResponse
+    #[Route('', name: 'app_product_index', methods: ['GET'])]
+    public function index(EntityManagerInterface $em): JsonResponse
     {
+        $this->denyAccessUnlessGranted('ROLE_MANAGER');
+
         $products = $em->getRepository(Product::class)->findAll();
 
-        return $this->json($products, Response::HTTP_OK);
-    }
-
-
-    #[Route('/{id}', name: 'get_product_item', methods: ['GET'])]
-    public function getProductItem(string $id, EntityManagerInterface $em): JsonResponse
-    {
-        $product = $em->getRepository(Product::class)->find($id);
-
-        if (!$product) {
-            return new JsonResponse(['data' => ['error' => 'Not found product by id ' . $id]], status: Response::HTTP_NOT_FOUND);
+        $data = [];
+        foreach ($products as $product) {
+            $data[] = [
+                'id' => $product->getId(),
+                'name' => $product->getName(),
+                'description' => $product->getDescription(),
+                'price' => $product->getPrice(),
+            ];
         }
 
-        return new JsonResponse(['data' => $product], status: Response::HTTP_OK);
+        return $this->json($data, Response::HTTP_OK);
     }
 
-    #[Route('/', name: 'post_products', methods: ['POST'])]
-    public function createProduct(Request $request, EntityManagerInterface $em): JsonResponse
+    #[Route('', name: 'app_product_new', methods: ['POST'])]
+    public function create(Request $request, EntityManagerInterface $em): JsonResponse
     {
-        $requestData = json_decode($request->getContent(), associative: true);
+        $this->denyAccessUnlessGranted('ROLE_ADMIN');
+
+        $data = json_decode($request->getContent(), true);
 
         $product = new Product();
-        $product->setName($requestData['name']);
-        $product->setDescription($requestData['description']);
-        $product->setPrice($requestData['price']);
+        $product->setName($data['name'] ?? '');
+        $product->setDescription($data['description'] ?? '');
+        $product->setPrice($data['price'] ?? 0);
 
         $em->persist($product);
         $em->flush();
 
-        return new JsonResponse(['data' => ['message' => 'Product created', 'id' => $product->getId()]], status: Response::HTTP_CREATED);
+        return $this->json([
+            'message' => 'Product created',
+            'id' => $product->getId(),
+        ], Response::HTTP_CREATED);
     }
 
-    #[Route('/{id}', name: 'update_product', methods: ['PUT'])]
-    public function updateProduct(string $id, Request $request, EntityManagerInterface $em): JsonResponse
+    #[Route('/{id}', name: 'app_product_show', methods: ['GET'])]
+    public function show(string $id, EntityManagerInterface $em): JsonResponse
     {
+        $this->denyAccessUnlessGranted('ROLE_MANAGER');
+
         $product = $em->getRepository(Product::class)->find($id);
 
         if (!$product) {
-            return new JsonResponse(['data' => ['error' => 'Not found product by id ' . $id]], status: Response::HTTP_NOT_FOUND);
+            return $this->json(['error' => 'Product not found'], Response::HTTP_NOT_FOUND);
         }
 
-        $requestData = json_decode($request->getContent(), associative: true);
-        $product->setName($requestData['name'] ?? $product->getName());
-        $product->setDescription($requestData['description'] ?? $product->getDescription());
-        $product->setPrice($requestData['price'] ?? $product->getPrice());
+        return $this->json([
+            'id' => $product->getId(),
+            'name' => $product->getName(),
+            'description' => $product->getDescription(),
+            'price' => $product->getPrice(),
+        ], Response::HTTP_OK);
+    }
+
+    #[Route('/{id}/edit', name: 'app_product_edit', methods: ['PUT', 'PATCH'])]
+    public function update(string $id, Request $request, EntityManagerInterface $em): JsonResponse
+    {
+        $this->denyAccessUnlessGranted('ROLE_MANAGER');
+
+        $product = $em->getRepository(Product::class)->find($id);
+
+        if (!$product) {
+            return $this->json(['error' => 'Product not found'], Response::HTTP_NOT_FOUND);
+        }
+
+        $data = json_decode($request->getContent(), true);
+
+        if (isset($data['name'])) {
+            $product->setName($data['name']);
+        }
+        if (isset($data['description'])) {
+            $product->setDescription($data['description']);
+        }
+        if (isset($data['price'])) {
+            $product->setPrice($data['price']);
+        }
 
         $em->flush();
 
-        return new JsonResponse(['data' => ['message' => 'Product updated']], status: Response::HTTP_OK);
+        return $this->json(['message' => 'Product updated'], Response::HTTP_OK);
     }
 
-    #[Route('/{id}', name: 'delete_product', methods: ['DELETE'])]
-    public function deleteProduct(string $id, EntityManagerInterface $em): JsonResponse
+    #[Route('/{id}', name: 'app_product_delete', methods: ['DELETE'])]
+    public function delete(string $id, EntityManagerInterface $em): JsonResponse
     {
+        $this->denyAccessUnlessGranted('ROLE_ADMIN');
+
         $product = $em->getRepository(Product::class)->find($id);
 
         if (!$product) {
-            return new JsonResponse(['data' => ['error' => 'Not found product by id ' . $id]], status: Response::HTTP_NOT_FOUND);
+            return $this->json(['error' => 'Product not found'], Response::HTTP_NOT_FOUND);
         }
 
         $em->remove($product);
         $em->flush();
 
-        return new JsonResponse(['data' => ['message' => 'Product deleted']], status: Response::HTTP_OK);
+        return $this->json(['message' => 'Product deleted'], Response::HTTP_OK);
     }
 }
-

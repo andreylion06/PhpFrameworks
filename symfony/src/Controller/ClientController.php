@@ -8,6 +8,7 @@ use App\Repository\ClientRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Knp\Component\Pager\PaginatorInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -19,7 +20,9 @@ final class ClientController extends AbstractController{
         Request $request,
         EntityManagerInterface $em,
         PaginatorInterface $paginator
-    ) {
+    ): JsonResponse {
+        $this->denyAccessUnlessGranted('ROLE_MANAGER');
+
         $queryBuilder = $em->getRepository(Client::class)->createQueryBuilder('c');
 
         if ($name = $request->query->get('name')) {
@@ -42,65 +45,87 @@ final class ClientController extends AbstractController{
             $itemsPerPage
         );
 
-        return $this->render('client/index.html.twig', [
-            'pagination' => $pagination,
+        $data = [];
+        foreach ($pagination as $client) {
+            $data[] = [
+                'id' => $client->getId(),
+                'name' => $client->getName(),
+                'email' => $client->getEmail(),
+                'phone' => $client->getPhone(),
+            ];
+        }
+
+        return $this->json([
+            'data' => $data,
+            'pagination' => [
+                'currentPage' => $pagination->getCurrentPageNumber(),
+                'totalItems' => $pagination->getTotalItemCount(),
+                'itemsPerPage' => $pagination->getItemNumberPerPage(),
+            ]
         ]);
     }
 
-    #[Route('/new', name: 'app_client_new', methods: ['GET', 'POST'])]
-    public function new(Request $request, EntityManagerInterface $entityManager): Response
+    #[Route('/new', name: 'app_client_new', methods: ['POST'])]
+    public function new(Request $request, EntityManagerInterface $entityManager): JsonResponse
     {
+        $this->denyAccessUnlessGranted('ROLE_ADMIN');
+
+        $data = json_decode($request->getContent(), true);
+
         $client = new Client();
-        $form = $this->createForm(ClientType::class, $client);
-        $form->handleRequest($request);
+        $client->setName($data['name'] ?? '');
+        $client->setEmail($data['email'] ?? '');
+        $client->setPhone($data['phone'] ?? '');
 
-        if ($form->isSubmitted() && $form->isValid()) {
-            $entityManager->persist($client);
-            $entityManager->flush();
+        $entityManager->persist($client);
+        $entityManager->flush();
 
-            return $this->redirectToRoute('app_client_index', [], Response::HTTP_SEE_OTHER);
-        }
-
-        return $this->render('client/new.html.twig', [
-            'client' => $client,
-            'form' => $form,
-        ]);
+        return $this->json(['message' => 'Client created'], Response::HTTP_CREATED);
     }
 
     #[Route('/{id}', name: 'app_client_show', methods: ['GET'])]
-    public function show(Client $client): Response
+    public function show(Client $client): JsonResponse
     {
-        return $this->render('client/show.html.twig', [
-            'client' => $client,
+        $this->denyAccessUnlessGranted('ROLE_MANAGER');
+
+        return $this->json([
+            'id' => $client->getId(),
+            'name' => $client->getName(),
+            'email' => $client->getEmail(),
+            'phone' => $client->getPhone(),
         ]);
     }
 
-    #[Route('/{id}/edit', name: 'app_client_edit', methods: ['GET', 'POST'])]
-    public function edit(Request $request, Client $client, EntityManagerInterface $entityManager): Response
+    #[Route('/{id}/edit', name: 'app_client_edit', methods: ['PUT', 'PATCH'])]
+    public function edit(Request $request, Client $client, EntityManagerInterface $entityManager): JsonResponse
     {
-        $form = $this->createForm(ClientType::class, $client);
-        $form->handleRequest($request);
+        $this->denyAccessUnlessGranted('ROLE_MANAGER');
 
-        if ($form->isSubmitted() && $form->isValid()) {
-            $entityManager->flush();
+        $data = json_decode($request->getContent(), true);
 
-            return $this->redirectToRoute('app_client_index', [], Response::HTTP_SEE_OTHER);
+        if (isset($data['name'])) {
+            $client->setName($data['name']);
+        }
+        if (isset($data['email'])) {
+            $client->setEmail($data['email']);
+        }
+        if (isset($data['phone'])) {
+            $client->setPhone($data['phone']);
         }
 
-        return $this->render('client/edit.html.twig', [
-            'client' => $client,
-            'form' => $form,
-        ]);
+        $entityManager->flush();
+
+        return $this->json(['message' => 'Client updated']);
     }
 
-    #[Route('/{id}', name: 'app_client_delete', methods: ['POST'])]
-    public function delete(Request $request, Client $client, EntityManagerInterface $entityManager): Response
+    #[Route('/{id}', name: 'app_client_delete', methods: ['DELETE'])]
+    public function delete(Client $client, EntityManagerInterface $entityManager): JsonResponse
     {
-        if ($this->isCsrfTokenValid('delete'.$client->getId(), $request->getPayload()->getString('_token'))) {
-            $entityManager->remove($client);
-            $entityManager->flush();
-        }
+        $this->denyAccessUnlessGranted('ROLE_ADMIN');
 
-        return $this->redirectToRoute('app_client_index', [], Response::HTTP_SEE_OTHER);
+        $entityManager->remove($client);
+        $entityManager->flush();
+
+        return $this->json(['message' => 'Client deleted']);
     }
 }

@@ -3,23 +3,25 @@
 namespace App\Controller;
 
 use App\Entity\MenuItem;
-use App\Form\MenuItemType;
-use App\Repository\MenuItemRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Knp\Component\Pager\PaginatorInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
 #[Route('/menu-items')]
-final class MenuItemController extends AbstractController{
+final class MenuItemController extends AbstractController
+{
     #[Route(name: 'app_menu_item_index', methods: ['GET'])]
     public function index(
         Request $request,
         EntityManagerInterface $em,
         PaginatorInterface $paginator
-    ) {
+    ): JsonResponse {
+        $this->denyAccessUnlessGranted('ROLE_MANAGER');
+
         $queryBuilder = $em->getRepository(MenuItem::class)->createQueryBuilder('m');
 
         if ($name = $request->query->get('name')) {
@@ -35,72 +37,91 @@ final class MenuItemController extends AbstractController{
         }
 
         $itemsPerPage = $request->query->getInt('itemsPerPage', 10);
+        $pagination = $paginator->paginate($queryBuilder, $request->query->getInt('page', 1), $itemsPerPage);
 
-        $pagination = $paginator->paginate(
-            $queryBuilder,
-            $request->query->getInt('page', 1),
-            $itemsPerPage
-        );
+        $items = [];
+        foreach ($pagination as $item) {
+            $items[] = [
+                'id' => $item->getId(),
+                'name' => $item->getName(),
+                'description' => $item->getDescription(),
+                'price' => $item->getPrice(),
+            ];
+        }
 
-        return $this->render('menu_item/index.html.twig', [
-            'pagination' => $pagination,
+        return $this->json([
+            'data' => $items,
+            'pagination' => [
+                'currentPage' => $pagination->getCurrentPageNumber(),
+                'totalItems' => $pagination->getTotalItemCount(),
+                'itemsPerPage' => $pagination->getItemNumberPerPage(),
+            ]
         ]);
     }
 
-    #[Route('/new', name: 'app_menu_item_new', methods: ['GET', 'POST'])]
-    public function new(Request $request, EntityManagerInterface $entityManager): Response
+    #[Route('/new', name: 'app_menu_item_new', methods: ['POST'])]
+    public function new(Request $request, EntityManagerInterface $em): JsonResponse
     {
-        $menuItem = new MenuItem();
-        $form = $this->createForm(MenuItemType::class, $menuItem);
-        $form->handleRequest($request);
+        $this->denyAccessUnlessGranted('ROLE_MANAGER');
 
-        if ($form->isSubmitted() && $form->isValid()) {
-            $entityManager->persist($menuItem);
-            $entityManager->flush();
+        $data = json_decode($request->getContent(), true);
 
-            return $this->redirectToRoute('app_menu_item_index', [], Response::HTTP_SEE_OTHER);
-        }
+        $item = new MenuItem();
+        $item->setName($data['name'] ?? '');
+        $item->setDescription($data['description'] ?? '');
+        $item->setPrice($data['price'] ?? 0);
 
-        return $this->render('menu_item/new.html.twig', [
-            'menu_item' => $menuItem,
-            'form' => $form,
-        ]);
+        $em->persist($item);
+        $em->flush();
+
+        return $this->json(['message' => 'Menu item created'], Response::HTTP_CREATED);
     }
 
     #[Route('/{id}', name: 'app_menu_item_show', methods: ['GET'])]
-    public function show(MenuItem $menuItem): Response
+    public function show(MenuItem $menuItem): JsonResponse
     {
-        return $this->render('menu_item/show.html.twig', [
-            'menu_item' => $menuItem,
+        $this->denyAccessUnlessGranted('ROLE_MANAGER');
+
+        return $this->json([
+            'id' => $menuItem->getId(),
+            'name' => $menuItem->getName(),
+            'description' => $menuItem->getDescription(),
+            'price' => $menuItem->getPrice(),
         ]);
     }
 
-    #[Route('/{id}/edit', name: 'app_menu_item_edit', methods: ['GET', 'POST'])]
-    public function edit(Request $request, MenuItem $menuItem, EntityManagerInterface $entityManager): Response
+    #[Route('/{id}/edit', name: 'app_menu_item_edit', methods: ['PUT', 'PATCH'])]
+    public function edit(Request $request, MenuItem $menuItem, EntityManagerInterface $em): JsonResponse
     {
-        $form = $this->createForm(MenuItemType::class, $menuItem);
-        $form->handleRequest($request);
+        $this->denyAccessUnlessGranted('ROLE_MANAGER');
 
-        if ($form->isSubmitted() && $form->isValid()) {
-            $entityManager->flush();
+        $data = json_decode($request->getContent(), true);
 
-            return $this->redirectToRoute('app_menu_item_index', [], Response::HTTP_SEE_OTHER);
+        if (isset($data['name'])) {
+            $menuItem->setName($data['name']);
         }
 
-        return $this->render('menu_item/edit.html.twig', [
-            'menu_item' => $menuItem,
-            'form' => $form,
-        ]);
+        if (isset($data['description'])) {
+            $menuItem->setDescription($data['description']);
+        }
+
+        if (isset($data['price'])) {
+            $menuItem->setPrice($data['price']);
+        }
+
+        $em->flush();
+
+        return $this->json(['message' => 'Menu item updated']);
     }
 
-    #[Route('/{id}', name: 'app_menu_item_delete', methods: ['POST'])]
-    public function delete(Request $request, MenuItem $menuItem, EntityManagerInterface $entityManager): Response
+    #[Route('/{id}', name: 'app_menu_item_delete', methods: ['DELETE'])]
+    public function delete(MenuItem $menuItem, EntityManagerInterface $em): JsonResponse
     {
-        if ($this->isCsrfTokenValid('delete'.$menuItem->getId(), $request->getPayload()->getString('_token'))) {
-            $entityManager->remove($menuItem);
-            $entityManager->flush();
-        }
+        $this->denyAccessUnlessGranted('ROLE_MANAGER');
 
-        return $this->redirectToRoute('app_menu_item_index', [], Response::HTTP_SEE_OTHER);
+        $em->remove($menuItem);
+        $em->flush();
+
+        return $this->json(['message' => 'Menu item deleted']);
     }
 }
