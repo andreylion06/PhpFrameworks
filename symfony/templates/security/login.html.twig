@@ -1,0 +1,48 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Login{% endblock %}
+
+{% block body %}
+    <div class="container">
+        <h1>Login</h1>
+        <form id="login-form">
+            <div class="mb-3">
+                <label>Email</label>
+                <input name="email" type="email" class="form-control" required>
+            </div>
+            <div class="mb-3">
+                <label>Password</label>
+                <input name="password" type="password" class="form-control" required>
+            </div>
+            <button class="btn btn-primary">Login</button>
+        </form>
+        <div id="result" class="mt-3 text-danger"></div>
+    </div>
+
+    <script>
+        document.querySelector('#login-form').addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            const formData = new FormData(e.target);
+            const data = {
+                email: formData.get('email'),
+                password: formData.get('password')
+            };
+
+            const response = await fetch('/api/login_check', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                localStorage.setItem('token', result.token);
+                document.getElementById('result').innerText = 'Login successful! Token saved in localStorage.';
+            } else {
+                document.getElementById('result').innerText = result.message || 'Login failed.';
+            }
+        });
+    </script>
+{% endblock %}
