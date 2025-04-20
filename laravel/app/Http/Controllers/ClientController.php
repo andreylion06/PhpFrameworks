@@ -24,11 +24,6 @@ class ClientController extends BaseController
         $itemsPerPage = (int) $request->input('itemsPerPage', 10);
         $clients = $query->paginate($itemsPerPage)->appends($request->query());
 
-        logger()->info('🔍 Final SQL: ' . $query->toSql());
-        logger()->info('🔢 Bindings: ', $query->getBindings());
-        logger()->info('🌐 Query params:', $request->query());
-        logger()->info('📦 Paginated total: ' . $clients->total());
-
         return response()->json([
             'data' => $clients->items(),
             'pagination' => [

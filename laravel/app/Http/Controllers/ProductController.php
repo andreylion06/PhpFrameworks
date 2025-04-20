@@ -4,82 +4,82 @@ namespace App\Http\Controllers;
 
 use App\Models\Product;
 use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
 
-class ProductController extends Controller
+class ProductController extends BaseController
 {
-    /**
-     * Get all products
-     */
-    public function getProducts(): JsonResponse
+    public function getProducts()
     {
-        return response()->json(['data' => Product::all()], 200);
+        $this->authorizeRole(['ROLE_MANAGER']);
+
+        $products = Product::all();
+
+        return response()->json(['data' => $products], 200);
     }
 
-    /**
-     * Get single product by ID
-     */
-    public function getProductItem($id): JsonResponse
+    public function getProductItem($id)
     {
+        $this->authorizeRole(['ROLE_MANAGER']);
+
         $product = Product::find($id);
 
         if (!$product) {
-            return response()->json(['data' => ['error' => 'Not found product by id ' . $id]], 404);
+            return response()->json(['error' => 'Product not found by id ' . $id], 404);
         }
 
         return response()->json(['data' => $product], 200);
     }
 
-    /**
-     * Create a new product
-     */
-    public function createProduct(Request $request): JsonResponse
+    public function createProduct(Request $request)
     {
-        $requestData = json_decode($request->getContent(), true);
+        $this->authorizeRole(['ROLE_ADMIN']);
 
-        $product = Product::create([
-            'name' => $requestData['name'],
-            'description' => $requestData['description'],
-            'price' => $requestData['price'],
+        $validated = $request->validate([
+            'name' => 'required|string',
+            'description' => 'nullable|string',
+            'price' => 'required|numeric|min:0',
         ]);
 
-        return response()->json(['data' => ['message' => 'Product created', 'id' => $product->id]], 201);
+        $product = Product::create($validated);
+
+        return response()->json([
+            'message' => 'Product created',
+            'data' => $product,
+        ], 201);
     }
 
-    /**
-     * Update an existing product
-     */
-    public function updateProduct(Request $request, $id): JsonResponse
+    public function updateProduct(Request $request, $id)
     {
+        $this->authorizeRole(['ROLE_MANAGER']);
+
         $product = Product::find($id);
 
         if (!$product) {
-            return response()->json(['data' => ['error' => 'Not found product by id ' . $id]], 404);
+            return response()->json(['error' => 'Product not found by id ' . $id], 404);
         }
 
-        $requestData = json_decode($request->getContent(), true);
-        $product->update([
-            'name' => $requestData['name'] ?? $product->name,
-            'description' => $requestData['description'] ?? $product->description,
-            'price' => $requestData['price'] ?? $product->price,
+        $validated = $request->validate([
+            'name' => 'sometimes|string',
+            'description' => 'nullable|string',
+            'price' => 'sometimes|numeric|min:0',
         ]);
 
-        return response()->json(['data' => ['message' => 'Product updated']], 200);
+        $product->update($validated);
+
+        return response()->json(['message' => 'Product updated', 'data' => $product], 200);
     }
 
-    /**
-     * Delete a product
-     */
-    public function deleteProduct($id): JsonResponse
+    public function deleteProduct($id)
     {
+        $this->authorizeRole(['ROLE_ADMIN']);
+
         $product = Product::find($id);
 
         if (!$product) {
-            return response()->json(['data' => ['error' => 'Not found product by id ' . $id]], 404);
+            return response()->json(['error' => 'Product not found by id ' . $id], 404);
         }
 
         $product->delete();
 
-        return response()->json(['data' => ['message' => 'Product deleted']], 200);
+        return response()->json(['message' => 'Product deleted'], 200);
     }
 }

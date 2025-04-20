@@ -5,75 +5,82 @@ namespace App\Http\Controllers;
 use App\Models\MenuItem;
 use Illuminate\Http\Request;
 
-class MenuItemController extends Controller
+class MenuItemController extends BaseController
 {
     public function index(Request $request)
     {
+        $this->authorizeRole(['ROLE_MANAGER']);
+
         $query = MenuItem::query();
 
-        if ($request->filled('name')) {
-            $query->where('name', 'like', '%' . $request->name . '%');
+        if ($request->has('name') && $request->filled('name')) {
+            $query->where('name', 'like', '%' . $request->input('name') . '%');
         }
 
-        if ($request->filled('price_min')) {
-            $query->where('price', '>=', $request->price_min);
+        if ($request->has('price_min') && $request->filled('price_min')) {
+            $query->where('price', '>=', $request->input('price_min'));
         }
 
-        if ($request->filled('price_max')) {
-            $query->where('price', '<=', $request->price_max);
+        if ($request->has('price_max') && $request->filled('price_max')) {
+            $query->where('price', '<=', $request->input('price_max'));
         }
 
-        $itemsPerPage = $request->input('itemsPerPage', 10);
+        $itemsPerPage = (int) $request->input('itemsPerPage', 10);
         $menuItems = $query->paginate($itemsPerPage)->appends($request->query());
 
-        return view('menu_items.index', compact('menuItems'));
-    }
-
-    public function create()
-    {
-        return view('menu_items.create');
+        return response()->json([
+            'data' => $menuItems->items(),
+            'pagination' => [
+                'currentPage' => $menuItems->currentPage(),
+                'totalItems' => $menuItems->total(),
+                'itemsPerPage' => $menuItems->perPage(),
+            ],
+        ]);
     }
 
     public function store(Request $request)
     {
-        $request->validate([
-            'name' => 'required',
-            'description' => 'nullable',
-            'price' => 'required|numeric',
+        $this->authorizeRole(['ROLE_ADMIN']);
+
+        $validated = $request->validate([
+            'name' => 'required|string',
+            'description' => 'nullable|string',
+            'price' => 'required|numeric|min:0',
         ]);
 
-        MenuItem::create($request->all());
+        $menuItem = MenuItem::create($validated);
 
-        return redirect()->route('menu-items.index')->with('success', 'Menu item created successfully.');
+        return response()->json(['message' => 'Menu item created', 'data' => $menuItem], 201);
     }
 
     public function show(MenuItem $menuItem)
     {
-        return view('menu_items.show', compact('menuItem'));
-    }
+        $this->authorizeRole(['ROLE_MANAGER']);
 
-    public function edit(MenuItem $menuItem)
-    {
-        return view('menu_items.edit', compact('menuItem'));
+        return response()->json($menuItem);
     }
 
     public function update(Request $request, MenuItem $menuItem)
     {
-        $request->validate([
-            'name' => 'required',
-            'description' => 'nullable',
-            'price' => 'required|numeric',
+        $this->authorizeRole(['ROLE_MANAGER']);
+
+        $validated = $request->validate([
+            'name' => 'required|string',
+            'description' => 'nullable|string',
+            'price' => 'required|numeric|min:0',
         ]);
 
-        $menuItem->update($request->all());
+        $menuItem->update($validated);
 
-        return redirect()->route('menu-items.index')->with('success', 'Menu item updated successfully.');
+        return response()->json(['message' => 'Menu item updated', 'data' => $menuItem]);
     }
 
     public function destroy(MenuItem $menuItem)
     {
+        $this->authorizeRole(['ROLE_ADMIN']);
+
         $menuItem->delete();
 
-        return redirect()->route('menu-items.index')->with('success', 'Menu item deleted successfully.');
+        return response()->json(['message' => 'Menu item deleted']);
     }
 }
