@@ -5,97 +5,84 @@ namespace App\Http\Controllers;
 use App\Models\Client;
 use Illuminate\Http\Request;
 
-class ClientController extends Controller
+class ClientController extends BaseController
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index(Request $request)
     {
+        $this->authorizeRole(['ROLE_MANAGER']);
+
         $query = Client::query();
 
-        if ($request->filled('name')) {
-            $query->where('name', 'like', '%' . $request->name . '%');
+        if ($request->has('name') && $request->filled('name')) {
+            $query->where('name', 'like', '%' . $request->input('name') . '%');
         }
 
-        if ($request->filled('email')) {
-            $query->where('email', 'like', '%' . $request->email . '%');
+        if ($request->has('phone') && $request->filled('phone')) {
+            $query->where('phone', 'like', '%' . $request->input('phone') . '%');
         }
 
-        if ($request->filled('phone')) {
-            $query->where('phone', 'like', '%' . $request->phone . '%');
-        }
-
-        $itemsPerPage = $request->input('itemsPerPage', 10); // за замовчуванням 10
-
+        $itemsPerPage = (int) $request->input('itemsPerPage', 10);
         $clients = $query->paginate($itemsPerPage)->appends($request->query());
 
-        return view('clients.index', compact('clients'));
+        logger()->info('🔍 Final SQL: ' . $query->toSql());
+        logger()->info('🔢 Bindings: ', $query->getBindings());
+        logger()->info('🌐 Query params:', $request->query());
+        logger()->info('📦 Paginated total: ' . $clients->total());
+
+        return response()->json([
+            'data' => $clients->items(),
+            'pagination' => [
+                'currentPage' => $clients->currentPage(),
+                'totalItems' => $clients->total(),
+                'itemsPerPage' => $clients->perPage(),
+            ],
+        ]);
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        return view('clients.create');
-    }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request)
     {
-        $request->validate([
+        $this->authorizeRole(['ROLE_ADMIN']);
+
+        $validated = $request->validate([
             'name' => 'required',
             'email' => 'required|email',
             'phone' => 'required',
         ]);
 
-        Client::create($request->all());
+        $client = Client::create($validated);
 
-        return redirect()->route('clients.index')->with('success', 'Client created successfully.');
+        return response()->json(['message' => 'Client created', 'data' => $client], 201);
     }
 
-    /**
-     * Display the specified resource.
-     */
     public function show(Client $client)
     {
-        return view('clients.show', compact('client'));
+        $this->authorizeRole(['ROLE_MANAGER']);
+
+        return response()->json($client);
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Client $client)
-    {
-        return view('clients.edit', compact('client'));
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(Request $request, Client $client)
     {
-        $request->validate([
+        $this->authorizeRole(['ROLE_MANAGER']);
+
+        $validated = $request->validate([
             'name' => 'required',
             'email' => 'required|email',
             'phone' => 'required',
         ]);
 
-        $client->update($request->all());
+        $client->update($validated);
 
-        return redirect()->route('clients.index')->with('success', 'Client updated successfully.');
+        return response()->json(['message' => 'Client updated', 'data' => $client]);
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy(Client $client)
     {
+        $this->authorizeRole(['ROLE_ADMIN']);
+
         $client->delete();
 
-        return redirect()->route('clients.index')->with('success', 'Client deleted successfully.');
+        return response()->json(['message' => 'Client deleted']);
     }
 }
