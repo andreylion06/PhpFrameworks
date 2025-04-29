@@ -33,7 +33,14 @@ class ProductController extends AbstractController
             return new JsonResponse(['data' => ['error' => 'Not found product by id ' . $id]], status: Response::HTTP_NOT_FOUND);
         }
 
-        return new JsonResponse(['data' => $product], status: Response::HTTP_OK);
+        $productData = [
+            'id' => $product->getId(),
+            'name' => $product->getName(),
+            'description' => $product->getDescription(),
+            'price' => $product->getPrice(),
+        ];
+
+        return new JsonResponse(['data' => $productData], status: Response::HTTP_OK);
     }
 
     #[Route('/', name: 'post_products', methods: ['POST'])]
